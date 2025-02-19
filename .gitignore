@@ -1,0 +1,8 @@
+credentials.json
+locations_map.yaml
+token.json
+.DS_Store
+/.idea/
+/.venv/
+*.xml
+*.iml
