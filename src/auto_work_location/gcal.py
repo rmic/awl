@@ -73,13 +73,20 @@ def get_working_location(day, service):
     return None
 
 def update_working_location(day, location, service):
+
+    if location not in ["HOME", "OFFICE"]:
+        raise NotImplementedError("Location OTHER is not supported yet")
+
     event = get_workingLocation_event(service, day)
     create = False
 
     if event:
-        if conversion_map.get(event['workingLocationProperties']['type'], "OTHER") == location:
+        calendar_location = conversion_map.get(event['workingLocationProperties']['type'], "OTHER")
+        if calendar_location == location:
             logger.info(f"Location already set to {location}")
             return event
+
+
     else:
         create = True
         next_day = (datetime.strptime(day, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
