@@ -1,0 +1,9 @@
+---
+mac_to_location:
+  "aa:bb:cc:dd:ee:ff": "HOME"
+  "11:22:33:44:55:66": "OFFICE"
+
+network_to_location:
+  "192.168.1.0": "HOME"
+  "10.0.0.0": "OFFICE"
+

@@ -10,6 +10,11 @@ import logging
 
 logger = logging.getLogger("auto_work_location")
 logger.setLevel(logging.DEBUG)
+conversion_map = {
+    'homeOffice': 'HOME',
+    'officeLocation': 'OFFICE'
+}
+
 def get_calendar_service(token_file, credentials_file, scopes):
     """Authenticate and return the Google Calendar API service."""
     creds = None
@@ -60,10 +65,7 @@ def get_workingLocation_event(service, day):
 def get_working_location(day, service):
     """Get the office location from the calendar for the given date."""
     event = get_workingLocation_event(service, day)
-    conversion_map = {
-        'homeOffice': 'HOME',
-        'officeLocation': 'OFFICE'
-    }
+
     if event:
         workingLocation = event['workingLocationProperties']['type']
         return conversion_map.get(workingLocation, "OTHER")
@@ -72,20 +74,28 @@ def get_working_location(day, service):
 
 def update_working_location(day, location, service):
     event = get_workingLocation_event(service, day)
-    if not event:
+    create = False
+
+    if event:
+        if conversion_map.get(event['workingLocationProperties']['type'], "OTHER") == location:
+            logger.info(f"Location already set to {location}")
+            return event
+    else:
+        create = True
+        next_day = (datetime.strptime(day, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
         # Create the event :
         event = {
             'eventType': 'workingLocation',
+            'transparency': 'transparent',
+            'visibility': 'public',
             'start': {
                 'date': day
             },
             'end': {
-                'date': day
+                'date': next_day
             }
         }
 
-        event = service.events().insert(calendarId='primary', body=event).execute()
-        logger.info(f"Created event: {event['id']} for {day}")
         
     """Update the calendar event with the new location."""
     if location == "HOME":
@@ -96,6 +106,11 @@ def update_working_location(day, location, service):
         event['workingLocationProperties'] = {'type': 'officeLocation', 'officeLocation': {}}
         event['summary'] = 'Bureau'
 
-    updated_event = service.events().update(calendarId='primary', eventId=event['id'], body=event).execute()
-    logger.info(f"Updated event: {updated_event['summary']} with location: {event['workingLocationProperties']['type']}")
+    if create:
+        event = service.events().insert(calendarId='primary', body=event).execute()
+        logger.info(f"Created event: {event['summary']} with location: {event['workingLocationProperties']['type']}")
+    else:
+        event = service.events().update(calendarId='primary', eventId=event['id'], body=event).execute()
+        logger.info(f"Updated event: {event['summary']} with location: {event['workingLocationProperties']['type']}")
+
     return event
